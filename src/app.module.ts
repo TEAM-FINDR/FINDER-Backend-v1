@@ -6,6 +6,7 @@ import { ApiException } from './common/errors/api-error';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { RequestTraceInterceptor } from './common/interceptors/request-trace.interceptor';
 import { validateEnvironment } from './config/env.validation';
+import { DatabaseModule } from './database/database.module';
 
 function findFirstInvalidField(
   errors: ValidationError[],
@@ -49,6 +50,7 @@ class GlobalValidationPipe extends ValidationPipe {
       isGlobal: true,
       validate: validateEnvironment,
     }),
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [
