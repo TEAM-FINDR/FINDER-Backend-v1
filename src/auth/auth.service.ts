@@ -45,14 +45,8 @@ export class AuthService {
 
   async verifyEmail(input: VerifyEmailDto) {
     const email = this.normalizeEmail(input.email);
-    const challenge = await this.repository.findChallenge(email, EMAIL_VERIFICATION_PURPOSE, this.hashChallenge(input.code), new Date());
-    if (!challenge?.userId) throw this.invalidChallenge();
-    const user = await this.repository.findUserByIdAndEmail(challenge.userId, email);
+    const user = await this.repository.verifyEmail(email, this.hashChallenge(input.code), new Date());
     if (!user) throw this.invalidChallenge();
-    const consumed = await this.repository.consumeChallenge(challenge.id, new Date());
-    if (!consumed) throw this.invalidChallenge();
-    user.emailVerifiedAt ??= new Date();
-    await this.repository.markEmailVerified(user.id, user.emailVerifiedAt);
     return this.tokens.createSession(user);
   }
 
@@ -75,10 +69,7 @@ export class AuthService {
     const external = await this.oauth.verify(provider, idToken);
     const identity = await this.repository.findIdentity(provider, external.subject);
     let user = identity ? await this.repository.findUserById(identity.userId) : null;
-    if (!user) {
-      user = await this.createSocialUser(external);
-      await this.repository.createIdentity(user.id, provider, external.subject);
-    }
+    if (!user) user = await this.createSocialUser(external, provider);
     return this.tokens.createSession(user);
   }
 
@@ -95,37 +86,38 @@ export class AuthService {
 
   async resetPassword(input: ResetPasswordDto) {
     const hash = this.hashChallenge(input.token);
-    const challenge = await this.repository.findChallengeByPurposeAndHash(PASSWORD_RESET_PURPOSE, hash, new Date());
-    if (!challenge?.userId) throw this.invalidChallenge();
-    const consumed = await this.repository.consumeChallenge(challenge.id, new Date());
-    if (!consumed) throw this.invalidChallenge();
-    await this.repository.updatePassword(challenge.userId, await this.passwords.hash(input.newPassword));
-    await this.tokens.revokeAllSessions(challenge.userId);
+    const updated = await this.repository.resetPassword(hash, await this.passwords.hash(input.newPassword), new Date());
+    if (!updated) throw this.invalidChallenge();
+    // The password update and session revocation are committed atomically by the repository.
     return { message: '비밀번호를 변경했습니다.' };
   }
 
   private async issueVerification(email: string, userId: string) {
-    const recent = await this.repository.findRecentChallenge(email, EMAIL_VERIFICATION_PURPOSE, new Date(Date.now() - 60_000));
-    if (recent) throw new ApiException(429, ApiErrorCode.RATE_LIMITED, '인증 코드는 1분 후 다시 요청할 수 있습니다.');
     const code = randomIntCode();
-    await this.storeChallenge(email, EMAIL_VERIFICATION_PURPOSE, this.hashChallenge(code), new Date(Date.now() + 10 * 60_000), userId);
+    const stored = await this.storeChallenge(email, EMAIL_VERIFICATION_PURPOSE, this.hashChallenge(code), new Date(Date.now() + 10 * 60_000), userId, 60_000);
+    if (!stored) throw new ApiException(429, ApiErrorCode.RATE_LIMITED, '인증 코드는 1분 후 다시 요청할 수 있습니다.');
     await this.email.sendVerificationCode(email, code);
   }
 
-  private async storeChallenge(email: string, purpose: string, tokenHash: string, expiresAt: Date, userId: string | null) {
-    await this.repository.replaceChallenge({ email, purpose, tokenHash, expiresAt, userId });
+  private storeChallenge(email: string, purpose: string, tokenHash: string, expiresAt: Date, userId: string | null, minimumIntervalMs?: number) {
+    return this.repository.replaceChallenge({ email, purpose, tokenHash, expiresAt, userId }, new Date(), minimumIntervalMs);
   }
 
-  private async createSocialUser(external: ExternalIdentity) {
+  private async createSocialUser(external: ExternalIdentity, provider: OAuthProvider) {
     const email = external.emailVerified ? external.email : null;
     if (email) {
       const existing = await this.repository.findUserByEmail(email);
       if (existing) {
         if (!existing.emailVerifiedAt) throw new ApiException(409, ApiErrorCode.RESOURCE_CONFLICT, '해당 이메일의 기존 계정을 먼저 인증해 주세요.');
+        await this.repository.createIdentity(existing.id, provider, external.subject);
         return existing;
       }
     }
-    return this.repository.createUser({ email, passwordHash: null, emailVerifiedAt: email ? new Date() : null, profileCompleted: false });
+    return this.repository.createSocialUserWithIdentity(
+      { email, passwordHash: null, emailVerifiedAt: email ? new Date() : null, profileCompleted: false },
+      provider,
+      external.subject,
+    );
   }
 
   private hashChallenge(value: string) { return createHmac('sha256', this.config.getOrThrow<string>('JWT_ACCESS_SECRET')).update(value).digest('hex'); }

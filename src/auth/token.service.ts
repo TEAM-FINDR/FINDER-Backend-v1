@@ -76,10 +76,6 @@ export class TokenService {
     await this.repository.revokeSession(sessionId, userId, new Date());
   }
 
-  async revokeAllSessions(userId: string): Promise<void> {
-    await this.repository.revokeAllSessions(userId, new Date());
-  }
-
   private async createTokenResponse(
     user: UserEntity,
     sessionId: string,

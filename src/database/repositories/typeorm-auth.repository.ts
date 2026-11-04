@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, MoreThan, Repository } from 'typeorm';
+import { DataSource, IsNull, MoreThan, Repository } from 'typeorm';
 import { OAuthProvider } from '../../auth/auth.types';
 import { AuthChallengeEntity } from '../../auth/entities/auth-challenge.entity';
+import { EMAIL_VERIFICATION_PURPOSE, PASSWORD_RESET_PURPOSE } from '../../auth/auth.constants';
 import { AuthIdentityEntity } from '../../auth/entities/auth-identity.entity';
 import { AuthSessionEntity } from '../../auth/entities/auth-session.entity';
 import { UserEntity } from '../../auth/entities/user.entity';
@@ -11,6 +12,7 @@ import { AuthRepository, NewChallengeRecord, NewUserRecord } from './auth.reposi
 @Injectable()
 export class TypeOrmAuthRepository extends AuthRepository {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>,
     @InjectRepository(AuthIdentityEntity) private readonly identities: Repository<AuthIdentityEntity>,
     @InjectRepository(AuthSessionEntity) private readonly sessions: Repository<AuthSessionEntity>,
@@ -19,8 +21,6 @@ export class TypeOrmAuthRepository extends AuthRepository {
 
   findUserByEmail(email: string) { return this.users.findOneBy({ email }); }
   findUserById(userId: string) { return this.users.findOneBy({ id: userId }); }
-  findUserByIdAndEmail(userId: string, email: string) { return this.users.findOneBy({ id: userId, email }); }
-  async markEmailVerified(userId: string, at: Date) { await this.users.update({ id: userId, emailVerifiedAt: IsNull() }, { emailVerifiedAt: at }); }
 
   getCurrentUser(userId: string) {
     return this.users.findOne({
@@ -30,36 +30,115 @@ export class TypeOrmAuthRepository extends AuthRepository {
   }
 
   createUser(record: NewUserRecord) { return this.users.save(this.users.create(record)); }
-  findIdentity(provider: OAuthProvider, subject: string) { return this.identities.findOneBy({ provider, providerSubject: subject }); }
+
+  findIdentity(provider: OAuthProvider, subject: string) {
+    return this.identities.findOneBy({ provider, providerSubject: subject });
+  }
 
   async createIdentity(userId: string, provider: OAuthProvider, subject: string) {
     await this.identities.save(this.identities.create({ userId, provider, providerSubject: subject }));
   }
 
-  findChallenge(email: string, purpose: string, tokenHash: string, now: Date) {
-    return this.challenges.findOne({ where: { email, purpose, tokenHash, consumedAt: IsNull(), expiresAt: MoreThan(now) } });
+  createSocialUserWithIdentity(record: NewUserRecord, provider: OAuthProvider, subject: string) {
+    return this.dataSource.transaction(async (manager) => {
+      const userRepository = manager.getRepository(UserEntity);
+      const user = await userRepository.save(userRepository.create(record));
+      const identityRepository = manager.getRepository(AuthIdentityEntity);
+      await identityRepository.save(identityRepository.create({
+        userId: user.id,
+        provider,
+        providerSubject: subject,
+      }));
+      return user;
+    });
   }
 
-  findChallengeByPurposeAndHash(purpose: string, tokenHash: string, now: Date) {
-    return this.challenges.findOne({ where: { purpose, tokenHash, consumedAt: IsNull(), expiresAt: MoreThan(now) } });
+  async replaceChallenge(record: NewChallengeRecord, at: Date, minimumIntervalMs?: number) {
+    return this.dataSource.transaction(async (manager) => {
+      if (record.userId) {
+        const user = await manager.getRepository(UserEntity).createQueryBuilder('user')
+          .setLock('pessimistic_write')
+          .where('user.id = :userId', { userId: record.userId })
+          .getOne();
+        if (!user) return false;
+      }
+
+      const challengeRepository = manager.getRepository(AuthChallengeEntity);
+      if (minimumIntervalMs !== undefined) {
+        const recentChallenge = await challengeRepository.findOne({
+          where: {
+            email: record.email,
+            purpose: record.purpose,
+            createdAt: MoreThan(new Date(at.getTime() - minimumIntervalMs)),
+          },
+        });
+        if (recentChallenge) return false;
+      }
+
+      await challengeRepository.update(
+        { email: record.email, purpose: record.purpose, consumedAt: IsNull() },
+        { consumedAt: at },
+      );
+      await challengeRepository.save(challengeRepository.create({ ...record, consumedAt: null }));
+      return true;
+    });
   }
 
-  findRecentChallenge(email: string, purpose: string, since: Date) {
-    return this.challenges.findOne({ where: { email, purpose, createdAt: MoreThan(since) } });
+  verifyEmail(email: string, tokenHash: string, at: Date) {
+    return this.dataSource.transaction(async (manager) => {
+      const challengeRepository = manager.getRepository(AuthChallengeEntity);
+      const challenge = await challengeRepository.findOne({
+        where: {
+          email,
+          purpose: EMAIL_VERIFICATION_PURPOSE,
+          tokenHash,
+          consumedAt: IsNull(),
+          expiresAt: MoreThan(at),
+        },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!challenge?.userId) return null;
+
+      const userRepository = manager.getRepository(UserEntity);
+      const user = await userRepository.findOneBy({ id: challenge.userId, email });
+      if (!user) return null;
+
+      challenge.consumedAt = at;
+      user.emailVerifiedAt ??= at;
+      await challengeRepository.save(challenge);
+      await userRepository.save(user);
+      return user;
+    });
   }
 
-  async replaceChallenge(record: NewChallengeRecord) {
-    await this.challenges.update({ email: record.email, purpose: record.purpose, consumedAt: IsNull() }, { consumedAt: new Date() });
-    await this.challenges.save(this.challenges.create({ ...record, consumedAt: null }));
-  }
+  resetPassword(tokenHash: string, passwordHash: string, at: Date) {
+    return this.dataSource.transaction(async (manager) => {
+      const challengeRepository = manager.getRepository(AuthChallengeEntity);
+      const challenge = await challengeRepository.findOne({
+        where: {
+          purpose: PASSWORD_RESET_PURPOSE,
+          tokenHash,
+          consumedAt: IsNull(),
+          expiresAt: MoreThan(at),
+        },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!challenge?.userId) return false;
 
-  async consumeChallenge(challengeId: string, now: Date) {
-    const result = await this.challenges.update({ id: challengeId, consumedAt: IsNull(), expiresAt: MoreThan(now) }, { consumedAt: now });
-    return result.affected === 1;
-  }
+      const userRepository = manager.getRepository(UserEntity);
+      const user = await userRepository.findOneBy({ id: challenge.userId });
+      if (!user) return false;
 
-  async updatePassword(userId: string, passwordHash: string) {
-    await this.users.update({ id: userId }, { passwordHash });
+      challenge.consumedAt = at;
+      user.passwordHash = passwordHash;
+      await challengeRepository.save(challenge);
+      await userRepository.save(user);
+      await manager.getRepository(AuthSessionEntity).update(
+        { userId: user.id, revokedAt: IsNull() },
+        { revokedAt: at },
+      );
+      return true;
+    });
   }
 
   async createSession(session: Pick<AuthSessionEntity, 'id' | 'userId' | 'refreshTokenHash' | 'expiresAt'>) {
@@ -82,7 +161,4 @@ export class TypeOrmAuthRepository extends AuthRepository {
     await this.sessions.update({ id: sessionId, userId, revokedAt: IsNull() }, { revokedAt: at });
   }
 
-  async revokeAllSessions(userId: string, at: Date) {
-    await this.sessions.update({ userId, revokedAt: IsNull() }, { revokedAt: at });
-  }
 }
