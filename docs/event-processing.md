@@ -14,11 +14,22 @@ HTTP 요청은 변경 유효성 확인과 도메인 저장까지만 동기 처�
 
 재계산 결과가 이전 상태와 같으면 `eligibility.changed` 및 알림을 만들지 않습니다. 저장소에서 원본 변경과 outbox 기록을 같은 트랜잭션에 묶어야 합니다. 외부 전송은 이 트랜잭션에 포함하지 않습니다.
 
+TypeORM 저장소 어댑터는 aggregate 저장에 사용 중인 `EntityManager`를 `TypeOrmEventOutboxRepository.enqueueInTransaction(manager, event)`에 전달합니다. Service에서 aggregate 저장이 끝난 뒤 `DomainEventPublisher.publish()`를 호출하면 두 변경이 분리되므로 producer의 원자성 경로로 사용하지 않습니다.
+
 ## 영속성과 중복 처리
 
 PostgreSQL `domain_event_outbox`를 작업 저장소로 사용합니다. 별도 Redis나 메시지 브로커가 없어도 기존 DB만으로 이벤트가 보존되고, worker 다중 실행은 `FOR UPDATE SKIP LOCKED`와 처리 lease로 분산합니다. 전달 보장은 at-least-once입니다. 이벤트 `eventKey`와 알림 `dedupeKey`에 고유 제약을 둡니다. 이벤트 handler는 `eventKey`를 기준으로 중복 실행에도 결과가 한 번만 반영되게 작성합니다.
 
 Worker는 작업을 claim할 때 시도 횟수를 늘리고 lease 만료 작업은 다시 claim합니다. 실패는 최대 8회까지 지수 backoff로 재시도하고, 마지막 오류와 시각을 저장합니다. 한도를 넘긴 작업은 `dead` 상태로 남아 조사할 수 있습니다. 재시도 주기는 1초부터 시작해 최대 30분으로 제한합니다.
+
+실패 작업은 다음 조회로 확인합니다.
+
+```sql
+SELECT id, event_key, event_type, attempts, last_error, created_at
+FROM domain_event_outbox
+WHERE status = 'dead'
+ORDER BY created_at DESC;
+```
 
 ## 자격 재분석
 
@@ -34,4 +45,4 @@ Worker는 작업을 claim할 때 시도 횟수를 늘리고 lease 만료 작업�
 
 메일·푸시 provider는 `EmailDeliveryProvider`, `PushDeliveryProvider` 계약 뒤에 둡니다. 알림 업무 흐름은 공급자별 SDK를 직접 사용하지 않습니다. 외부 공급자의 idempotency key 지원을 우선 사용하고, 지원하지 않는 전송은 실패 후 재시도 시 중복 전달 가능성이 남으므로 attempt와 provider 응답 식별자를 기록합니다.
 
-Profile, Opportunity, Saved, Eligibility, Notification 설정·기기 데이터 저장소는 현재 기능 API 구현 범위에 따라 각 도메인 모듈에서 제공합니다. 해당 저장소가 준비되면 이벤트 producer와 마감 후보 source를 연결합니다. 새 소비자를 추가할 때는 소유 모듈이 handler를 등록하고 `EventsModule`은 도메인 모듈을 import하지 않습니다.
+Profile, Opportunity, Saved, Eligibility, Notification 설정·기기 데이터 저장소는 현재 기능 API 구현 범위에 따라 각 도메인 모듈에서 제공합니다. 해당 저장소가 준비되면 이벤트 producer와 마감 후보 source를 연결합니다. source나 provider port 구현이 등록되지 않은 기능은 시작 로그에 비활성 상태를 남깁니다. 새 소비자를 추가할 때는 소유 모듈이 handler를 등록하고 `EventsModule`은 도메인 모듈을 import하지 않습니다.
