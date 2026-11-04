@@ -49,6 +49,7 @@ npm run start:dev
 | `SMTP_USER`, `SMTP_PASSWORD` | 빈 값 | SMTP 인증 정보(필요한 경우) |
 | `EMAIL_FROM` | `FINDR <no-reply@localhost>` | 발신 주소 |
 | `WEB_APP_URL` | `http://localhost:5173` | 비밀번호 재설정 링크에 사용하는 웹 앱 주소 |
+| `APP_TIME_ZONE` | `Asia/Seoul` | 날짜 기반 마감 알림의 기준 시간대 (IANA 이름) |
 
 `CORS_ORIGINS`에는 경로가 없는 정확한 출처를 입력합니다. 예: `https://app.example.com,http://localhost:5173`. 비워 두면 브라우저 교차 출처 요청을 허용하지 않습니다. 네이티브 앱 요청에는 브라우저 CORS가 적용되지 않습니다.
 
@@ -65,6 +66,7 @@ API 오류 응답 형식은 [공통 API 오류 문서](./docs/api-errors.md)를 
 인증 요청과 토큰 수명 주기는 [인증 API 문서](./docs/authentication.md)를 참고합니다.
 데이터베이스 선택, 관계, migration 및 보존 기준은 [데이터베이스 문서](./docs/database.md)를 참고합니다.
 도메인 소유권과 모듈 의존 규칙은 [백엔드 모듈 경계 문서](./docs/module-boundaries.md)를 참고합니다.
+도메인 이벤트, 재시도, 중복 방지와 마감 예약 기준은 [이벤트 처리 문서](./docs/event-processing.md)를 참고합니다.
 
 ## 빌드 및 실행
 

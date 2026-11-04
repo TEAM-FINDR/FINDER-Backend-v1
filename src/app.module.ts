@@ -21,6 +21,7 @@ import { HomeModule } from './home/home.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationSettingsModule } from './notification-settings/notification-settings.module';
 import { DevicesModule } from './devices/devices.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { DevicesModule } from './devices/devices.module';
     NotificationsModule,
     NotificationSettingsModule,
     DevicesModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [
