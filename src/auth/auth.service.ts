@@ -9,7 +9,7 @@ import { OAuthVerifierService } from './oauth-verifier.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { EmailPasswordDto, EmailDto, ResetPasswordDto, VerifyEmailDto } from './dto/auth.dto';
-import { AuthRepository } from '../database/repositories/auth.repository';
+import { AuthRepository } from './ports/auth.repository';
 
 @Injectable()
 export class AuthService {

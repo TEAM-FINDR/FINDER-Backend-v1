@@ -5,7 +5,7 @@ import { randomBytes, randomUUID, createHmac, timingSafeEqual } from 'node:crypt
 import { ApiErrorCode, ApiException } from '../common/errors/api-error';
 import { UserEntity } from './entities/user.entity';
 import { AccessTokenClaims, AuthTokens } from './auth.types';
-import { AuthRepository } from '../database/repositories/auth.repository';
+import { AuthRepository } from './ports/auth.repository';
 
 @Injectable()
 export class TokenService {
