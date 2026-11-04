@@ -1,12 +1,9 @@
-import {
-  BadRequestException,
-  Module,
-  ValidationError,
-  ValidationPipe,
-} from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
+import { Module, ValidationError, ValidationPipe } from '@nestjs/common';
+import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
+import { ApiException } from './common/errors/api-error';
+import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { validateEnvironment } from './config/env.validation';
 
 function findFirstInvalidField(
@@ -34,11 +31,12 @@ class GlobalValidationPipe extends ValidationPipe {
       forbidNonWhitelisted: true,
       exceptionFactory: (errors: ValidationError[]) => {
         const field = findFirstInvalidField(errors);
-        return new BadRequestException({
-          code: 'INVALID_REQUEST',
-          message: '요청 값이 유효하지 않습니다.',
-          ...(field ? { field } : {}),
-        });
+        return new ApiException(
+          400,
+          'INVALID_REQUEST',
+          '요청 값이 유효하지 않습니다.',
+          field,
+        );
       },
     });
   }
@@ -52,6 +50,9 @@ class GlobalValidationPipe extends ValidationPipe {
     }),
   ],
   controllers: [AppController],
-  providers: [{ provide: APP_PIPE, useClass: GlobalValidationPipe }],
+  providers: [
+    { provide: APP_PIPE, useClass: GlobalValidationPipe },
+    { provide: APP_FILTER, useClass: ApiExceptionFilter },
+  ],
 })
 export class AppModule {}
