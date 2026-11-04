@@ -13,7 +13,7 @@ import { EmailService } from './email.service';
 import { OAuthVerifierService } from './oauth-verifier.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
-import { AuthRepository } from '../database/repositories/auth.repository';
+import { AuthRepository } from './ports/auth.repository';
 import { TypeOrmAuthRepository } from '../database/repositories/typeorm-auth.repository';
 
 @Module({

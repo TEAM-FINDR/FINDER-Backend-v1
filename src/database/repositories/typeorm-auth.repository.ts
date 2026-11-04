@@ -7,7 +7,7 @@ import { EMAIL_VERIFICATION_PURPOSE, PASSWORD_RESET_PURPOSE } from '../../auth/a
 import { AuthIdentityEntity } from '../../auth/entities/auth-identity.entity';
 import { AuthSessionEntity } from '../../auth/entities/auth-session.entity';
 import { UserEntity } from '../../auth/entities/user.entity';
-import { AuthRepository, NewChallengeRecord, NewUserRecord } from './auth.repository';
+import { AuthRepository, NewChallengeRecord, NewUserRecord } from '../../auth/ports/auth.repository';
 
 @Injectable()
 export class TypeOrmAuthRepository extends AuthRepository {

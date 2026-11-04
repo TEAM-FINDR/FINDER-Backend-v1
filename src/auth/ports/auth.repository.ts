@@ -1,8 +1,8 @@
-import { AuthChallengeEntity } from '../../auth/entities/auth-challenge.entity';
-import { AuthIdentityEntity } from '../../auth/entities/auth-identity.entity';
-import { AuthSessionEntity } from '../../auth/entities/auth-session.entity';
-import { UserEntity } from '../../auth/entities/user.entity';
-import { OAuthProvider } from '../../auth/auth.types';
+import { AuthChallengeEntity } from '../entities/auth-challenge.entity';
+import { AuthIdentityEntity } from '../entities/auth-identity.entity';
+import { AuthSessionEntity } from '../entities/auth-session.entity';
+import { UserEntity } from '../entities/user.entity';
+import { OAuthProvider } from '../auth.types';
 
 export interface NewUserRecord {
   email: string | null;
