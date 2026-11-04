@@ -1,0 +1,31 @@
+name: 기능 제안
+description: 백엔드에 필요한 새 기능이나 API를 제안합니다.
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 해결하려는 문제
+      description: 사용자 또는 시스템이 겪는 문제를 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안하는 동작
+      description: 필요한 API, 입력, 출력, 권한 또는 처리 흐름을 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 완료 조건
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 참고 자료 및 추가 맥락

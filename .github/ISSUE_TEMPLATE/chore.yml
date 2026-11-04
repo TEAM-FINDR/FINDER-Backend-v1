@@ -1,0 +1,27 @@
+name: 유지보수 작업
+description: 설정, 개발 도구, 저장소 문서 등 기능 변경이 아닌 작업을 등록합니다.
+title: "[Chore]: "
+labels: ["chore"]
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 작업 목적
+      description: 왜 이 작업이 필요한지 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: changes
+    attributes:
+      label: 작업 내용
+      description: 바꿀 설정, 도구 또는 문서를 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 완료 조건
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
