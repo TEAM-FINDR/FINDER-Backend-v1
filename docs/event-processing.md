@@ -16,11 +16,15 @@ HTTP 요청은 변경 유효성 확인과 도메인 저장까지만 동기 처�
 
 TypeORM 저장소 어댑터는 aggregate 저장에 사용 중인 `EntityManager`를 `TypeOrmEventOutboxRepository.enqueueInTransaction(manager, event)`에 전달합니다. Service에서 aggregate 저장이 끝난 뒤 `DomainEventPublisher.publish()`를 호출하면 두 변경이 분리되므로 producer의 원자성 경로로 사용하지 않습니다.
 
+새 migration을 되돌리면 `domain_event_outbox`와 대기·완료·실패 작업 기록이 함께 삭제됩니다. rollback 전에 producer와 worker를 중지하고 필요한 이벤트 기록을 보존했는지 확인해야 합니다.
+
 ## 영속성과 중복 처리
 
 PostgreSQL `domain_event_outbox`를 작업 저장소로 사용합니다. 별도 Redis나 메시지 브로커가 없어도 기존 DB만으로 이벤트가 보존되고, worker 다중 실행은 `FOR UPDATE SKIP LOCKED`와 처리 lease로 분산합니다. 전달 보장은 at-least-once입니다. 이벤트 `eventKey`와 알림 `dedupeKey`에 고유 제약을 둡니다. 이벤트 handler는 `eventKey`를 기준으로 중복 실행에도 결과가 한 번만 반영되게 작성합니다.
 
 Worker는 작업을 claim할 때 시도 횟수를 늘리고 lease 만료 작업은 다시 claim합니다. 실패는 최대 8회까지 지수 backoff로 재시도하고, 마지막 오류와 시각을 저장합니다. 한도를 넘긴 작업은 `dead` 상태로 남아 조사할 수 있습니다. 재시도 주기는 1초부터 시작해 최대 30분으로 제한합니다.
+
+아직 consumer가 등록되지 않은 이벤트 유형은 claim하지 않고 outbox에 pending 상태로 보존합니다. handler가 등록된 뒤 worker가 처리합니다.
 
 실패 작업은 다음 조회로 확인합니다.
 
