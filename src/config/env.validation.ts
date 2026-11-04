@@ -76,6 +76,16 @@ export function validateEnvironment(
     }
   }
 
+  const appTimeZone = config.APP_TIME_ZONE ?? 'Asia/Seoul';
+  if (typeof appTimeZone !== 'string' || appTimeZone.length === 0) {
+    throw new Error('APP_TIME_ZONE must be a valid IANA time zone.');
+  }
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: appTimeZone });
+  } catch {
+    throw new Error('APP_TIME_ZONE must be a valid IANA time zone.');
+  }
+
   return {
     ...config,
     NODE_ENV: nodeEnv,
@@ -91,5 +101,6 @@ export function validateEnvironment(
     EMAIL_FROM: config.EMAIL_FROM ?? 'FINDR <no-reply@localhost>',
     WEB_APP_URL: config.WEB_APP_URL ?? 'http://localhost:5173',
     CORS_ORIGINS: allowedOrigins,
+    APP_TIME_ZONE: appTimeZone,
   };
 }

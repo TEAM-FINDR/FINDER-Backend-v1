@@ -49,6 +49,7 @@ npm run start:dev
 | `SMTP_USER`, `SMTP_PASSWORD` | 빈 값 | SMTP 인증 정보(필요한 경우) |
 | `EMAIL_FROM` | `FINDR <no-reply@localhost>` | 발신 주소 |
 | `WEB_APP_URL` | `http://localhost:5173` | 비밀번호 재설정 링크에 사용하는 웹 앱 주소 |
+| `APP_TIME_ZONE` | `Asia/Seoul` | 날짜 기반 마감 알림의 기준 시간대 (IANA 이름) |
 
 `CORS_ORIGINS`에는 경로가 없는 정확한 출처를 입력합니다. 예: `https://app.example.com,http://localhost:5173`. 비워 두면 브라우저 교차 출처 요청을 허용하지 않습니다. 네이티브 앱 요청에는 브라우저 CORS가 적용되지 않습니다.
 
