@@ -65,6 +65,7 @@ API 오류 응답 형식은 [공통 API 오류 문서](./docs/api-errors.md)를 
 인증 요청과 토큰 수명 주기는 [인증 API 문서](./docs/authentication.md)를 참고합니다.
 데이터베이스 선택, 관계, migration 및 보존 기준은 [데이터베이스 문서](./docs/database.md)를 참고합니다.
 도메인 소유권과 모듈 의존 규칙은 [백엔드 모듈 경계 문서](./docs/module-boundaries.md)를 참고합니다.
+도메인 이벤트, 재시도, 중복 방지와 마감 예약 기준은 [이벤트 처리 문서](./docs/event-processing.md)를 참고합니다.
 
 ## 빌드 및 실행
 
