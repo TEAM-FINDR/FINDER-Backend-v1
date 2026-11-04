@@ -6,6 +6,10 @@ import { DomainEventHandler } from './domain-event-handler';
 export class EventHandlerRegistry {
   private readonly handlers = new Map<string, DomainEventHandler>();
 
+  getSupportedEventTypes(): string[] {
+    return [...this.handlers.keys()];
+  }
+
   register(handler: DomainEventHandler): void {
     for (const eventType of handler.eventTypes) {
       if (this.handlers.has(eventType)) {

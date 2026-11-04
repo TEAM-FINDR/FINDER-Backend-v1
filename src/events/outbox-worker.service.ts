@@ -43,7 +43,12 @@ export class OutboxWorkerService implements OnApplicationBootstrap, OnModuleDest
   }
 
   private async processBatch(): Promise<void> {
-    const events = await this.outbox.claim(BATCH_SIZE, new Date(), LEASE_MS);
+    const events = await this.outbox.claim(
+      BATCH_SIZE,
+      new Date(),
+      LEASE_MS,
+      this.handlers.getSupportedEventTypes(),
+    );
     for (const event of events) {
       try {
         await this.handlers.dispatch(event);

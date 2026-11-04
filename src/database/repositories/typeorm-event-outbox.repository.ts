@@ -28,14 +28,15 @@ export class TypeOrmEventOutboxRepository extends EventOutboxRepository {
     return result.length === 1;
   }
 
-  async claim(limit: number, now: Date, leaseMs: number): Promise<DomainEventEntity[]> {
+  async claim(limit: number, now: Date, leaseMs: number, eventTypes: readonly string[]): Promise<DomainEventEntity[]> {
+    if (eventTypes.length === 0) return [];
     return this.dataSource.transaction(async (manager) => {
       const repository = manager.getRepository(DomainEventEntity);
       const events = await repository.createQueryBuilder('event')
         .setLock('pessimistic_write')
         .setOnLocked('skip_locked')
-        .where("(event.status = 'pending' AND event.available_at <= :now)", { now })
-        .orWhere("(event.status = 'processing' AND event.locked_until <= :now)", { now })
+        .where("((event.status = 'pending' AND event.available_at <= :now) OR (event.status = 'processing' AND event.locked_until <= :now))", { now })
+        .andWhere('event.event_type IN (:...eventTypes)', { eventTypes })
         .orderBy('event.available_at', 'ASC')
         .addOrderBy('event.created_at', 'ASC')
         .take(limit)
