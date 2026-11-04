@@ -1,7 +1,7 @@
 name: 리팩터링
 description: 외부 동작을 바꾸지 않는 코드 구조 개선 작업을 등록합니다.
 title: "[Refactor]: "
-labels: ["리팩터링"]
+labels: ["refactor"]
 body:
   - type: textarea
     id: motivation
