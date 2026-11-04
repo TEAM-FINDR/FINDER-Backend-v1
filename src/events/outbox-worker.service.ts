@@ -47,10 +47,10 @@ export class OutboxWorkerService implements OnApplicationBootstrap, OnModuleDest
     for (const event of events) {
       try {
         await this.handlers.dispatch(event);
-        await this.outbox.complete(event.id, new Date());
+        if (event.leaseToken) await this.outbox.complete(event.id, event.leaseToken, new Date());
       } catch (error) {
         const retryAt = this.retryAt(event.attempts);
-        await this.outbox.fail(event.id, event.attempts, MAX_ATTEMPTS, retryAt, this.errorSummary(error));
+        if (event.leaseToken) await this.outbox.fail(event.id, event.leaseToken, event.attempts, MAX_ATTEMPTS, retryAt, this.errorSummary(error));
         this.logger.warn(JSON.stringify({
           event: 'outbox_handler_failed',
           eventId: event.id,

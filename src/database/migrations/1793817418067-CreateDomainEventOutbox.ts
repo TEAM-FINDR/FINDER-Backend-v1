@@ -17,6 +17,7 @@ export class CreateDomainEventOutbox1793817418067 implements MigrationInterface 
         "attempts" integer NOT NULL DEFAULT 0 CHECK ("attempts" >= 0),
         "available_at" timestamptz NOT NULL DEFAULT now(),
         "locked_until" timestamptz NULL,
+        "lease_token" uuid NULL,
         "last_error" text NULL,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "completed_at" timestamptz NULL

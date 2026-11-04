@@ -36,6 +36,9 @@ export class DomainEventEntity {
   @Column({ name: 'locked_until', type: 'timestamptz', nullable: true })
   lockedUntil!: Date | null;
 
+  @Column({ name: 'lease_token', type: 'uuid', nullable: true })
+  leaseToken!: string | null;
+
   @Column({ name: 'last_error', type: 'text', nullable: true })
   lastError!: string | null;
 

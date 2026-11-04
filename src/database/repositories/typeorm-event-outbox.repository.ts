@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
+import { randomUUID } from 'node:crypto';
 import { DomainEventEntity } from '../../events/entities/domain-event.entity';
 import { EventOutboxRepository } from '../../events/ports/event-outbox.repository';
 import { NewDomainEvent } from '../../events/domain-event.types';
@@ -45,26 +46,29 @@ export class TypeOrmEventOutboxRepository extends EventOutboxRepository {
         event.status = 'processing';
         event.attempts += 1;
         event.lockedUntil = lockedUntil;
+        event.leaseToken = randomUUID();
         await repository.save(event);
       }
       return events;
     });
   }
 
-  async complete(eventId: string, at: Date) {
-    await this.events.update({ id: eventId, status: 'processing' }, {
+  async complete(eventId: string, leaseToken: string, at: Date) {
+    await this.events.update({ id: eventId, status: 'processing', leaseToken }, {
       status: 'completed',
       completedAt: at,
       lockedUntil: null,
+      leaseToken: null,
       lastError: null,
     });
   }
 
-  async fail(eventId: string, attempts: number, maxAttempts: number, retryAt: Date, reason: string) {
-    await this.events.update({ id: eventId, status: 'processing' }, {
+  async fail(eventId: string, leaseToken: string, attempts: number, maxAttempts: number, retryAt: Date, reason: string) {
+    await this.events.update({ id: eventId, status: 'processing', leaseToken }, {
       status: attempts >= maxAttempts ? 'dead' : 'pending',
       availableAt: retryAt,
       lockedUntil: null,
+      leaseToken: null,
       lastError: reason.slice(0, 4000),
     });
   }
