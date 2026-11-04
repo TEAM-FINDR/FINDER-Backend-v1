@@ -13,6 +13,8 @@ import { EmailService } from './email.service';
 import { OAuthVerifierService } from './oauth-verifier.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+import { AuthRepository } from '../database/repositories/auth.repository';
+import { TypeOrmAuthRepository } from '../database/repositories/typeorm-auth.repository';
 
 @Module({
   imports: [
@@ -26,7 +28,15 @@ import { TokenService } from './token.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, TokenService, EmailService, OAuthVerifierService, AccessTokenGuard],
+  providers: [
+    AuthService,
+    PasswordService,
+    TokenService,
+    EmailService,
+    OAuthVerifierService,
+    AccessTokenGuard,
+    { provide: AuthRepository, useClass: TypeOrmAuthRepository },
+  ],
   exports: [AccessTokenGuard],
 })
 export class AuthModule {}

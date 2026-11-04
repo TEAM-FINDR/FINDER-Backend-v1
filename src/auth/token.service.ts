@@ -1,21 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes, randomUUID, createHmac, timingSafeEqual } from 'node:crypto';
-import { IsNull, MoreThan, Repository } from 'typeorm';
 import { ApiErrorCode, ApiException } from '../common/errors/api-error';
-import { AuthSessionEntity } from './entities/auth-session.entity';
 import { UserEntity } from './entities/user.entity';
 import { AccessTokenClaims, AuthTokens } from './auth.types';
+import { AuthRepository } from '../database/repositories/auth.repository';
 
 @Injectable()
 export class TokenService {
   constructor(
-    @InjectRepository(AuthSessionEntity)
-    private readonly sessions: Repository<AuthSessionEntity>,
-    @InjectRepository(UserEntity)
-    private readonly users: Repository<UserEntity>,
+    @Inject(AuthRepository) private readonly repository: AuthRepository,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -25,15 +20,12 @@ export class TokenService {
     const refreshToken = this.createRefreshToken(sessionId);
     const expiresAt = this.getRefreshExpiry();
 
-    await this.sessions.save(
-      this.sessions.create({
-        id: sessionId,
-        userId: user.id,
-        refreshTokenHash: this.hashToken(refreshToken),
-        expiresAt,
-        revokedAt: null,
-      }),
-    );
+    await this.repository.createSession({
+      id: sessionId,
+      userId: user.id,
+      refreshTokenHash: this.hashToken(refreshToken),
+      expiresAt,
+    });
 
     return this.createTokenResponse(user, sessionId, refreshToken);
   }
@@ -45,39 +37,25 @@ export class TokenService {
     }
 
     const now = new Date();
-    const session = await this.sessions.findOne({
-      where: {
-        id: sessionId,
-        revokedAt: IsNull(),
-        expiresAt: MoreThan(now),
-      },
-    });
+    const session = await this.repository.findActiveSession(sessionId, now);
     if (!session || !this.safeEqual(session.refreshTokenHash, this.hashToken(refreshToken))) {
       throw this.invalidToken();
     }
 
-    const user = await this.users.findOneBy({ id: session.userId });
+    const user = await this.repository.findUserById(session.userId);
     if (!user) {
       throw this.invalidToken();
     }
 
     const nextRefreshToken = this.createRefreshToken(session.id);
     const nextExpiry = this.getRefreshExpiry();
-    const update = await this.sessions
-      .createQueryBuilder()
-      .update(AuthSessionEntity)
-      .set({
-        refreshTokenHash: this.hashToken(nextRefreshToken),
-        expiresAt: nextExpiry,
-        updatedAt: now,
-      })
-      .where(
-        'id = :id AND refresh_token_hash = :oldHash AND revoked_at IS NULL AND expires_at > :now',
-        { id: session.id, oldHash: session.refreshTokenHash, now },
-      )
-      .execute();
-
-    if (update.affected !== 1) {
+    if (!(await this.repository.rotateSession(
+      session.id,
+      session.refreshTokenHash,
+      this.hashToken(nextRefreshToken),
+      nextExpiry,
+      now,
+    ))) {
       throw this.invalidToken();
     }
 
@@ -90,30 +68,16 @@ export class TokenService {
     if (!claims.sub || !claims.sid || claims.typ !== 'access') {
       return false;
     }
-    const session = await this.sessions.findOne({
-      where: {
-        id: claims.sid,
-        userId: claims.sub,
-        revokedAt: IsNull(),
-        expiresAt: MoreThan(new Date()),
-      },
-      select: { id: true },
-    });
-    return Boolean(session);
+    const session = await this.repository.findActiveSession(claims.sid, new Date());
+    return Boolean(session && session.userId === claims.sub);
   }
 
   async revokeSession(sessionId: string, userId: string): Promise<void> {
-    await this.sessions.update(
-      { id: sessionId, userId, revokedAt: IsNull() },
-      { revokedAt: new Date() },
-    );
+    await this.repository.revokeSession(sessionId, userId, new Date());
   }
 
   async revokeAllSessions(userId: string): Promise<void> {
-    await this.sessions.update(
-      { userId, revokedAt: IsNull() },
-      { revokedAt: new Date() },
-    );
+    await this.repository.revokeAllSessions(userId, new Date());
   }
 
   private async createTokenResponse(
