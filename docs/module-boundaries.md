@@ -56,3 +56,9 @@ Notifications -> NotificationSettings, Devices
 Controller는 경로·입력 DTO·인증 Guard를 선언하고 Service를 호출합니다. Service는 입력 검증 이후의 업무 흐름과 도메인 모듈 간 조합을 소유합니다. DTO는 HTTP 계약이며 Entity를 직접 응답으로 반환하지 않습니다. 저장소 포트는 기능에서 필요한 연산만 선언하고 TypeORM 어댑터는 DB 질의를 구현합니다.
 
 Application과 Web의 같은 기능은 동일 Service와 데이터 규칙을 사용합니다. 요청 필드가 다르면 Controller 경계에서 별도 DTO로 변환하고, 클라이언트별 업무 규칙을 복제하지 않습니다. API 경로와 응답이 실제로 다른 경우에만 명세에 기록된 계약 차이를 Controller/DTO에 반영합니다.
+
+## Application/Web API 계약
+
+제공된 API 명세에서 Application과 Web은 `auth`, `eligibility`, `finder`, `home`, `notification-settings`, `notifications`, `opportunities`, `profile`, `saved`, `terms`, `users` 영역을 공유합니다. Application 명세에만 `devices`, `organizations` 목록이 있습니다. 이는 두 개의 서버 구현을 뜻하지 않으며, 단일 도메인 모듈에서 필요한 클라이언트 경로를 제공합니다.
+
+Controller는 HTTP 요청/응답 DTO를 Service 입력/출력 계약으로 변환합니다. Service는 Application/Web 구분 없이 같은 도메인 규칙을 실행합니다. 한 클라이언트에 기능이 노출되지 않는 경우 별도 도메인 로직이나 가짜 endpoint를 만들지 않고 해당 클라이언트 명세에만 노출 경로를 둡니다. 반환 Entity를 그대로 공유하지 않고 각 HTTP 계약에 맞춰 response DTO로 매핑합니다.
