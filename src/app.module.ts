@@ -9,6 +9,18 @@ import { validateEnvironment } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { UsersModule } from './users/users.module';
+import { TermsModule } from './terms/terms.module';
+import { ProfilesModule } from './profiles/profiles.module';
+import { OpportunitiesModule } from './opportunities/opportunities.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+import { SavedModule } from './saved/saved.module';
+import { EligibilityModule } from './eligibility/eligibility.module';
+import { FinderModule } from './finder/finder.module';
+import { HomeModule } from './home/home.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationSettingsModule } from './notification-settings/notification-settings.module';
+import { DevicesModule } from './devices/devices.module';
 
 function findFirstInvalidField(
   errors: ValidationError[],
@@ -55,6 +67,18 @@ class GlobalValidationPipe extends ValidationPipe {
     DatabaseModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     AuthModule,
+    UsersModule,
+    TermsModule,
+    ProfilesModule,
+    OpportunitiesModule,
+    OrganizationsModule,
+    SavedModule,
+    EligibilityModule,
+    FinderModule,
+    HomeModule,
+    NotificationsModule,
+    NotificationSettingsModule,
+    DevicesModule,
   ],
   controllers: [AppController],
   providers: [
