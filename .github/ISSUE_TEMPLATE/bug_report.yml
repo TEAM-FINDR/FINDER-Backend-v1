@@ -1,0 +1,43 @@
+name: 버그 제보
+description: 기존 동작이 기대와 다르게 동작하는 문제를 제보합니다.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: 재현 가능한 정보와 기대한 결과를 적어주세요.
+  - type: input
+    id: summary
+    attributes:
+      label: 문제 요약
+      placeholder: 어떤 문제가 발생하나요?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 방법
+      description: 요청, 입력값, 순서를 포함해 적어주세요. 비밀 키나 개인정보는 제외하세요.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 동작
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 동작 및 오류 로그
+      description: 민감정보를 제거한 로그만 첨부하세요.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 환경
+      placeholder: OS, Node.js 버전, 브랜치 또는 커밋

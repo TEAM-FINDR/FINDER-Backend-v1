@@ -1,0 +1,17 @@
+name: 보안 취약점 제보
+description: 비공개 보안 제보 경로를 안내합니다.
+title: "[Security]: 비공개 제보 경로 사용"
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        공개 이슈에는 취약점 세부 내용, 재현 절차, 공격 코드, 민감한 로그를 적지 마세요.
+        [비공개 보안 권고](https://github.com/TEAM-FINDR/FINDER-Backend-v1/security/advisories/new)로 이동해 제보해 주세요.
+  - type: checkboxes
+    id: private_report
+    attributes:
+      label: 비공개 제보 확인
+      options:
+        - label: 취약점 세부 정보를 공개 이슈에 게시하지 않고 비공개 제보 경로를 이용하겠습니다.
+          required: true
