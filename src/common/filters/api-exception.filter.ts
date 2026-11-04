@@ -4,6 +4,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import {
@@ -56,6 +57,8 @@ const errorByStatus: Record<
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(ApiExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const context = host.switchToHttp();
     const request = context.getRequest<HttpRequestWithTraceId>();
@@ -86,6 +89,22 @@ export class ApiExceptionFilter implements ExceptionFilter {
       ...(apiException?.field ? { field: apiException.field } : {}),
       traceId,
     };
+
+    const logEntry = JSON.stringify({
+      traceId,
+      method: request.method,
+      path: request.url.split('?')[0],
+      status,
+      code: body.code,
+    });
+    if (internalError) {
+      this.logger.error(
+        logEntry,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    } else {
+      this.logger.warn(logEntry);
+    }
 
     response.status(status).json(body);
   }
