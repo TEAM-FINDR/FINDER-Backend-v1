@@ -46,6 +46,8 @@ npm run start:dev
 - `/docs`: OpenAPI 문서와 Swagger UI
 - `/docs-json`: OpenAPI JSON 문서
 
+API 오류 응답 형식은 [공통 API 오류 문서](./docs/api-errors.md)를 참고합니다.
+
 ## 빌드 및 실행
 
 ```bash
