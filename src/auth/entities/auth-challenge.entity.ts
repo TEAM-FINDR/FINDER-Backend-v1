@@ -15,7 +15,7 @@ export class AuthChallengeEntity {
   @Column({ type: 'varchar', length: 30 })
   purpose!: string;
 
-  @Column({ name: 'token_hash', type: 'varchar', length: 64, unique: true })
+  @Column({ name: 'token_hash', type: 'varchar', length: 64 })
   tokenHash!: string;
 
   @Column({ name: 'expires_at', type: 'timestamptz' })

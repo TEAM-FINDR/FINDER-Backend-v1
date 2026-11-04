@@ -45,7 +45,7 @@ export class CreateAuthTables1700000000000 implements MigrationInterface {
         "user_id" uuid NULL REFERENCES "users"("id") ON DELETE CASCADE,
         "email" varchar(320) NOT NULL,
         "purpose" varchar(30) NOT NULL,
-        "token_hash" varchar(64) NOT NULL UNIQUE,
+        "token_hash" varchar(64) NOT NULL,
         "expires_at" timestamptz NOT NULL,
         "consumed_at" timestamptz NULL,
         "created_at" timestamptz NOT NULL DEFAULT now()
