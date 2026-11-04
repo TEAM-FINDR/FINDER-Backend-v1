@@ -1,0 +1,24 @@
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: finder
+      POSTGRES_PASSWORD: finder
+      POSTGRES_DB: finder
+    ports:
+      - "5432:5432"
+    volumes:
+      - finder-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finder -d finder"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  finder-postgres-data:

@@ -1,11 +1,14 @@
 import { Module, ValidationError, ValidationPipe } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { ApiException } from './common/errors/api-error';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { RequestTraceInterceptor } from './common/interceptors/request-trace.interceptor';
 import { validateEnvironment } from './config/env.validation';
+import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './auth/auth.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 function findFirstInvalidField(
   errors: ValidationError[],
@@ -49,12 +52,16 @@ class GlobalValidationPipe extends ValidationPipe {
       isGlobal: true,
       validate: validateEnvironment,
     }),
+    DatabaseModule,
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
     { provide: APP_PIPE, useClass: GlobalValidationPipe },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
     { provide: APP_INTERCEPTOR, useClass: RequestTraceInterceptor },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}
