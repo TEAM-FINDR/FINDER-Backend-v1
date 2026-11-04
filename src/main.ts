@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -7,7 +8,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableShutdownHooks();
 
-  const port = Number(process.env.PORT ?? 3000);
+  const config = app.get(ConfigService);
+  const port = config.getOrThrow<number>('PORT');
   await app.listen(port, '0.0.0.0');
 }
 
