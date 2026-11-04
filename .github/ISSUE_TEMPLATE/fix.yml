@@ -1,7 +1,7 @@
 name: 수정 작업
 description: 확인된 결함이나 누락을 바로잡는 작업을 등록합니다.
 title: "[Fix]: "
-labels: ["fix"]
+labels: ["수정"]
 body:
   - type: textarea
     id: current

@@ -1,7 +1,7 @@
 name: 유지보수 작업
 description: 설정, 개발 도구, 저장소 문서 등 기능 변경이 아닌 작업을 등록합니다.
 title: "[Chore]: "
-labels: ["chore"]
+labels: ["유지보수"]
 body:
   - type: textarea
     id: purpose

@@ -1,7 +1,7 @@
 name: 기능 제안
 description: 백엔드에 필요한 새 기능이나 API를 제안합니다.
 title: "[Feature]: "
-labels: ["feature"]
+labels: ["기능"]
 body:
   - type: textarea
     id: problem
