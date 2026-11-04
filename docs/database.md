@@ -6,6 +6,8 @@ PostgreSQL 17을 기본 데이터베이스로 사용하고 TypeORM 0.3을 NestJS
 
 런타임 자동 스키마 동기화(`synchronize`)는 끕니다. 스키마 변경은 리뷰 가능한 migration으로만 적용하고, migration 실행은 `npm run migration:run`, 마지막 migration 되돌리기는 `npm run migration:revert`를 사용합니다.
 
+엔티티 변경으로 migration을 만들 때는 `npm run migration:generate -- src/database/migrations/DescribeChange`를 실행합니다. 생성된 SQL을 검토하고 필요하면 보정한 뒤 커밋합니다.
+
 ## 연결 정보와 비밀 관리
 
 애플리케이션은 `DATABASE_URL`로 PostgreSQL에 연결합니다. 로컬 개발 값은 `.env.example`과 Docker Compose에 제공하며, 실제 운영 URL과 비밀번호는 배포 환경의 비밀 저장소에서 주입합니다. 실제 `.env`와 운영 자격 증명은 저장소에 커밋하지 않습니다.
