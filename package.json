@@ -24,8 +24,10 @@
   "homepage": "https://github.com/TEAM-FINDR/FINDER-Backend-v1#readme",
   "dependencies": {
     "@nestjs/common": "^12.3.3",
+    "@nestjs/config": "^12.1.0",
     "@nestjs/core": "^12.3.3",
     "@nestjs/platform-express": "^12.3.3",
+    "@nestjs/swagger": "^12.1.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
